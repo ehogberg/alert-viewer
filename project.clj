@@ -20,7 +20,8 @@
                  [environ "1.0.0"]
                  [http-kit "2.1.19"]
                  [cljs-ajax "0.3.14"]
-                 [prismatic/om-tools "0.3.11"]]
+                 [prismatic/om-tools "0.3.11"]
+                 [com.andrewmcveigh/cljs-time "0.3.13"]]
 
   :plugins [[lein-cljsbuild "1.0.5"]
             [lein-environ "1.0.0"]
