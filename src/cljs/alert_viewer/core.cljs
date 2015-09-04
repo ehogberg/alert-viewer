@@ -1,9 +1,13 @@
 (ns alert-viewer.core
   (:require [ajax.core :refer [GET POST]]
+            [cljs-time.format :as tfmt]
+            [om-bootstrap.grid :as grid]
+            [om-bootstrap.nav :as n]
+            [om-bootstrap.panel :as p]
+            [om-bootstrap.table :as t]
             [om.core :as om :include-macros true]
             [om-tools.core :refer-macros [defcomponent]]
-            [om-tools.dom :as dom :include-macros true]
-            [cljs-time.format :as tfmt]))
+            [om-tools.dom :as dom :include-macros true]))
 
 (enable-console-print!)
 
@@ -50,7 +54,7 @@
              cb))
 
 (def app-root (. js/document (getElementById "app")) )
-
+(def nav-root (. js/document (getElementById "navbar")))
 
 (declare build-main)
 
@@ -62,20 +66,25 @@
 
 
 (defcomponent alert-history-item
-  [{{{:keys [execution_time]} :result} :_source} _]
+  [{{{{:keys [met status]}     :condition
+       :keys [execution_time]} :result} :_source} _]
   (render [_]
     (dom/tr
-     (dom/td (printable-datetime execution_time)))))
+     (dom/td (printable-datetime execution_time))
+     (dom/td (if met "+"))
+     (dom/td
+      (dom/a {:href "#"} "raw")))))
 
 
 (defcomponent alert-detail [{:keys [history]} _]
   (render [_]
     (dom/div
-     (dom/h2 {:class "subheader"} "Alert Detail")
-     (dom/table
+     (t/table {}
       (dom/thead
        (dom/tr
-        (dom/th "Run On")))
+        (dom/th "Run On")
+        (dom/th "Matched?")
+        (dom/th "")))
       (dom/tbody
        (om/build-all alert-history-item history)))
      (dom/a {:href "#"
@@ -103,15 +112,26 @@
 (defcomponent alert-list [{:keys [text alerts stats]} owner]
   (render [_]
     (dom/div
-     (dom/h2 "Alert Viewer")
-     (dom/div {:class "large-6 columns"}
-       (dom/div {:class "panel"}
-                (dom/h3 {:class "subheader"} "Active Alerts")
-                (dom/ul
-                 (om/build-all alert-list-item alerts))))
-     (dom/div {:class "large-6 columns"}
-              (om/build stats-summary stats)))))
+     (grid/grid
+      {}
+      (grid/row
+       {}
+       (grid/col {:md 6}
+                 (p/panel {:header (dom/h2 "Active Alerts")}
+                          (dom/ul
+                           (om/build-all alert-list-item alerts))))
+       (grid/col {:md 6}
+                 (p/panel {:header (dom/h2 "Stats")}
+                          (om/build stats-summary stats))))))))
 
+
+(defcomponent nav [_ _]
+  (render [_]
+    (n/navbar {:inverse? true
+               :brand (dom/a {:href "#"} "Alert Viewer")})))
+
+(defn build-nav []
+  (om/root nav app-state {:target nav-root}))
 
 (defn build-main []
   (om/root alert-list app-state {:target app-root}))
@@ -119,4 +139,5 @@
 
 (defn main []
   (current-alerts)
+  (build-nav)
   (build-main))

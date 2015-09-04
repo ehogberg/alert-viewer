@@ -21,7 +21,8 @@
                  [http-kit "2.1.19"]
                  [cljs-ajax "0.3.14"]
                  [prismatic/om-tools "0.3.11"]
-                 [com.andrewmcveigh/cljs-time "0.3.13"]]
+                 [com.andrewmcveigh/cljs-time "0.3.13"]
+                 [racehub/om-bootstrap "0.5.3"]]
 
   :plugins [[lein-cljsbuild "1.0.5"]
             [lein-environ "1.0.0"]
