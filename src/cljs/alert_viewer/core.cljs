@@ -8,6 +8,7 @@
 (enable-console-print!)
 
 (defonce app-state (atom {:text "Alert Viewer"
+                          :history nil
                           :stats nil
                           :alerts nil}))
 
@@ -16,6 +17,7 @@
        {:response-format :json
         :keywords? true
         :handler callback}))
+
 
 
 (defn ajax-post [url params callback]
@@ -42,21 +44,32 @@
              #(swap! app-state assoc :alerts
                      (get-in % [:aggregations :current-alerts :buckets]))))
 
+
+(defn alert-history [id cb]
+  (ajax-post "http://localhost:9250/.watch_history*/_search"
+             {:filter {:term {:watch_id id}}}
+             cb))
+
 (def app-root (. js/document (getElementById "app")) )
 
 
 (declare build-main)
 
 
-(defcomponent alert-detail [{{{:keys [last_checked last_met_condition]}
-                              :_status} :_source
-                              :keys [_id]} _]
+(defcomponent alert-history-item [{{{:keys [execution_time]} :result} :_source}
+                                  _]
+  (render [_]
+    (dom/tr
+     (dom/td (tfmt/unparse
+              (tfmt/formatter "MM/dd/YYYY hh:mm:ss a")
+              (tfmt/parse (tfmt/formatters :date-time)  execution_time))))))
+
+(defcomponent alert-detail [{:keys [history]} _]
   (render [_]
     (dom/div
      (dom/h2 {:class "subheader"} "Alert Detail")
-     (dom/p _id)
-     (dom/p last_checked)
-     (dom/p last_met_condition)
+     (dom/table
+      (om/build-all alert-history-item history))
      (dom/a {:href "#"
              :onClick #(build-main)} "Back"))))
 
@@ -65,7 +78,14 @@
   (render [_]
     (dom/li
      (dom/a {:href "#"
-             :onClick #(om/root alert-detail alert {:target app-root})}
+             :onClick #(alert-history
+                        key
+                        (fn [r]
+                          (swap! app-state assoc :history
+                                 (get-in r [:hits :hits]))
+                          (om/root alert-detail
+                                   {:history (get-in r [:hits :hits])}
+                                   {:target app-root})))}
             key))))
 
 (defcomponent stats-summary [{:keys [watcher_state]} _]
@@ -89,7 +109,6 @@
 
 (defn build-main []
   (om/root alert-list app-state {:target app-root}))
-
 
 (defn main []
   (current-alerts)
