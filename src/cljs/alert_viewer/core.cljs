@@ -8,7 +8,6 @@
 (enable-console-print!)
 
 (defonce app-state (atom {:text "Alert Viewer"
-                          :history nil
                           :stats nil
                           :alerts nil}))
 
@@ -56,20 +55,29 @@
 (declare build-main)
 
 
-(defcomponent alert-history-item [{{{:keys [execution_time]} :result} :_source}
-                                  _]
+(defn printable-datetime [dt]
+  (tfmt/unparse
+   (tfmt/formatter "MM/dd/YYYY hh:mm:ss a")
+   (tfmt/parse (tfmt/formatters :date-time) dt)))
+
+
+(defcomponent alert-history-item
+  [{{{:keys [execution_time]} :result} :_source} _]
   (render [_]
     (dom/tr
-     (dom/td (tfmt/unparse
-              (tfmt/formatter "MM/dd/YYYY hh:mm:ss a")
-              (tfmt/parse (tfmt/formatters :date-time)  execution_time))))))
+     (dom/td (printable-datetime execution_time)))))
+
 
 (defcomponent alert-detail [{:keys [history]} _]
   (render [_]
     (dom/div
      (dom/h2 {:class "subheader"} "Alert Detail")
      (dom/table
-      (om/build-all alert-history-item history))
+      (dom/thead
+       (dom/tr
+        (dom/th "Run On")))
+      (dom/tbody
+       (om/build-all alert-history-item history)))
      (dom/a {:href "#"
              :onClick #(build-main)} "Back"))))
 
@@ -81,8 +89,6 @@
              :onClick #(alert-history
                         key
                         (fn [r]
-                          (swap! app-state assoc :history
-                                 (get-in r [:hits :hits]))
                           (om/root alert-detail
                                    {:history (get-in r [:hits :hits])}
                                    {:target app-root})))}
@@ -109,6 +115,7 @@
 
 (defn build-main []
   (om/root alert-list app-state {:target app-root}))
+
 
 (defn main []
   (current-alerts)
